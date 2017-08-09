@@ -1,0 +1,49 @@
+---
+title: "AMP-AD Cross Network Summary Statistics"
+output: html_notebook
+---
+
+First, we pull the entire individual module manifest from Synapse.
+
+```{r}
+synapseClient::synapseLogin()
+individualModuleManifest <- synapseClient::synTableQuery("select * from syn10146524")@values
+head(individualModuleManifest)
+```
+
+Next, we group the modules by brain region, module name, and method so we can make summary plots.
+
+```{r}
+library(dplyr)
+moduleSizeSummary <- dplyr::group_by(individualModuleManifest,brainRegion,ModuleName,method)%>%
+  dplyr::summarise(numberOfGenes=length(ModuleName))
+
+moduleNumberSummary <- dplyr::group_by(moduleSizeSummary,brainRegion,method) %>%
+  dplyr::summarise(numberOfModules = length(method))
+```
+
+Then, we plot the module size distribution
+
+```{r}
+g <- ggplot2::ggplot(moduleSizeSummary, 
+                     ggplot2::aes(x=brainRegion,
+                                  y=numberOfGenes,
+                                  fill=method))
+g <- g + ggplot2::geom_boxplot(position='dodge')
+g <- g + ggplot2::scale_y_log10()
+g <- g + ggplot2::theme_grey(base_size = 20) 
+g
+```
+
+and the module number distribution
+
+```{r}
+g <- ggplot2::ggplot(moduleNumberSummary, 
+                     ggplot2::aes(x=brainRegion,
+                                  y=numberOfModules,
+                                  fill=method))
+g <- g + ggplot2::geom_col(position='dodge')
+g <- g + ggplot2::scale_y_log10()
+g <- g + ggplot2::theme_grey(base_size = 20) 
+g
+```
