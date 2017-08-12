@@ -1,6 +1,8 @@
 ---
 title: "AMP-AD Cross Network Summary Statistics"
-output: html_notebook
+output:
+  html_notebook: default
+  html_document: default
 ---
 
 First, we pull the entire individual module manifest from Synapse.
@@ -127,14 +129,37 @@ nmi_score_lf_list <- mapply(addBrainRegion,nmi_score_lf_list,names(nmi_score_lf_
 nmi_score_lf_list <- do.call(rbind,nmi_score_lf_list)
 ```
 
-Make plots.
+```{r}
+library(pheatmap)
+p <- pheatmap(test, silent = TRUE)
+```
 
 ```{r}
-pheatmap::pheatmap(data.matrix(nmi_score$DLPFC),fontsize = 15,main='DLPFC')
+plot(p$gtable)
+```
+
+
+Make plots.
+```{r}
+p <- pheatmap::pheatmap(data.matrix(nmi_score$DLPFC),fontsize = 15,main='DLPFC',silent=T)
 ```
 ```{r}
-pheatmap::pheatmap(data.matrix(nmi_score$CBE),fontsize = 15,main='CBE')
+plot(p$gtable)
 ```
 ```{r}
-pheatmap::pheatmap(data.matrix(nmi_score$TCX),fontsize = 15,main='TCX')
+p<-pheatmap::pheatmap(data.matrix(nmi_score$CBE),fontsize = 15,main='CBE',silent=T)
 ```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$TCX),fontsize = 15,main='TCX',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+Table of NMIs
+```{r}
+nmi_score_lf_list
+```
+
