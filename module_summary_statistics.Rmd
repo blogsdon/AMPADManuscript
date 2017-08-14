@@ -76,9 +76,13 @@ annos <- c('analysisType'='visualization',
            'consortium'='AMP-AD')
 synapseClient::synSetAnnotations(figObj) <- as.list(annos)
 
-permLink <- githubr::getPermlink('blogsdon/AMPADManuscript','module_summary_statistics.Rmd')
+permLink <- githubr::getPermlink(repository='blogsdon/AMPADManuscript',
+                                 ref = 'branch',
+                                 refName = 'summary',
+                                 repositoryPath = 'module_summary_statistics.Rmd')
 
 figObj<- synapseClient::synStore(figObj,
                                  used=as.list(c("syn10146524")),
                                  executed=as.list(permLink))
+synapseClient::onWeb(figObj)
 ```
