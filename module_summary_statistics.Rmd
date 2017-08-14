@@ -70,13 +70,15 @@ g <- g + ggplot2::theme_grey(base_size = 15)
 g
 dev.off()
 
-figObj<-synapseClient::File(module_size_loc,parentId=figuresSynId)
+figObj<-synapseClient::File(module_size_loc,parentId=figureSynId)
 annos <- c('analysisType'='visualization',
            'fileFormat'='tif',
            'consortium'='AMP-AD')
 synapseClient::synSetAnnotations(figObj) <- as.list(annos)
 
+permLink <- githubr::getPermlink('blogsdon/AMPADManuscript','module_summary_statistics.Rmd')
+
 figObj<- synapseClient::synStore(figObj,
                                  used=as.list(c("syn10146524")),
-                                 executed=)
+                                 executed=as.list(permLink))
 ```
