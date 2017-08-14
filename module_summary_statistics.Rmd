@@ -88,3 +88,40 @@ figObj<- synapseClient::synStore(figObj,
                                  executed=as.list(permLink))
 synapseClient::onWeb(figObj)
 ```
+Create number of module distribution and share on Synapse
+
+```{r}
+module_number_loc <- 'figures/module_number_distribution.tiff'
+figureSynId <- 'syn10306452'
+tiff(file=module_number_loc,
+    height=1687,
+    width=2250,
+    res=300,
+    pointsize = 30)
+g <- ggplot2::ggplot(moduleNumberSummary, 
+                     ggplot2::aes(x=brainRegion,
+                                  y=numberOfModules,
+                                  fill=method))
+g <- g + ggplot2::geom_col(position='dodge')
+g <- g + ggplot2::scale_y_log10()
+g <- g + ggplot2::theme_grey(base_size = 15) 
+dev.off()
+
+figObj<-synapseClient::File(module_size_loc,
+                            parentId=figureSynId,
+                            versionComment="Initial store of module number summary figure")
+annos <- c('analysisType'='visualization',
+           'fileFormat'='tif',
+           'consortium'='AMP-AD')
+synapseClient::synSetAnnotations(figObj) <- as.list(annos)
+
+permLink <- githubr::getPermlink(repository='blogsdon/AMPADManuscript',
+                                 ref = 'branch',
+                                 refName = 'summary',
+                                 repositoryPath = 'module_summary_statistics.Rmd')
+
+figObj<- synapseClient::synStore(figObj,
+                                 used=as.list(c("syn10146524")),
+                                 executed=as.list(permLink))
+synapseClient::onWeb(figObj)
+```
