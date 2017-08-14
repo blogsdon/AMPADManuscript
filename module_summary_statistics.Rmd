@@ -104,7 +104,8 @@ g <- ggplot2::ggplot(moduleNumberSummary,
                                   fill=method))
 g <- g + ggplot2::geom_col(position='dodge')
 g <- g + ggplot2::scale_y_log10()
-g <- g + ggplot2::theme_grey(base_size = 15) 
+g <- g + ggplot2::theme_grey(base_size = 15)
+g
 dev.off()
 
 figObj<-synapseClient::File(module_number_loc,
