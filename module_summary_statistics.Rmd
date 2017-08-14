@@ -54,7 +54,7 @@ Create size distribution file and upload to synapse
 
 ```{r}
 module_size_loc <- 'figures/module_size_distribution.tiff'
-figureSynId <- 'syn10306452'
+figureSynId <- 'syn10306508'
 tiff(file=module_size_loc,
     height=1687,
     width=2250,
@@ -92,7 +92,7 @@ Create number of module distribution and share on Synapse
 
 ```{r}
 module_number_loc <- 'figures/module_number_distribution.tiff'
-figureSynId <- 'syn10306452'
+figureSynId <- 'syn10306508'
 tiff(file=module_number_loc,
     height=1687,
     width=2250,
