@@ -127,3 +127,27 @@ figObj<- synapseClient::synStore(figObj,
 synapseClient::onWeb(figObj)
 ```
 
+
+Push html notebook to Synapse.
+```{r}
+notebook_loc <- 'module_summary_statistics.nb.html'
+notebookFolderId <- 'syn10306449'
+nbObj <- synapseClient::File(notebook_loc,
+                             parentId=notebookFolderId,
+                             versionComment="Initial store of notebook for module summaries")
+annos <- c('fileFormat'='rmd',
+           'consortium'='AMP-AD')
+
+synapseClient::synSetAnnotations(nbObj) <- as.list(annos)
+permLink <- githubr::getPermlink(repository='blogsdon/AMPADManuscript',
+                                 ref = 'branch',
+                                 refName = 'summary',
+                                 repositoryPath = 'module_summary_statistics.Rmd')
+
+nbObj<- synapseClient::synStore(nbObj,
+                                 used=as.list(c("syn10146524")),
+                                 executed=as.list(permLink))
+synapseClient::onWeb(nbObj)
+
+```
+
