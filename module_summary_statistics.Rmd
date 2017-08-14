@@ -50,3 +50,33 @@ g <- g + ggplot2::theme_grey(base_size = 20)
 g
 ```
 
+Create size distribution file and upload to synapse
+
+```{r}
+module_size_loc <- 'figures/module_size_distribution.tiff'
+figureSynId <- 'syn10306452'
+tiff(file=module_size_loc,
+    height=1687,
+    width=2250,
+    res=300,
+    pointsize = 30)
+g <- ggplot2::ggplot(moduleSizeSummary, 
+                     ggplot2::aes(x=brainRegion,
+                                  y=numberOfGenes,
+                                  fill=method))
+g <- g + ggplot2::geom_boxplot(position='dodge')
+g <- g + ggplot2::scale_y_log10()
+g <- g + ggplot2::theme_grey(base_size = 15) 
+g
+dev.off()
+
+figObj<-synapseClient::File(module_size_loc,parentId=figuresSynId)
+annos <- c('analysisType'='visualization',
+           'fileFormat'='tif',
+           'consortium'='AMP-AD')
+synapseClient::synSetAnnotations(figObj) <- as.list(annos)
+
+figObj<- synapseClient::synStore(figObj,
+                                 used=as.list(c("syn10146524")),
+                                 executed=)
+```
