@@ -70,7 +70,9 @@ g <- g + ggplot2::theme_grey(base_size = 15)
 g
 dev.off()
 
-figObj<-synapseClient::File(module_size_loc,parentId=figureSynId)
+figObj<-synapseClient::File(module_size_loc,
+                            parentId=figureSynId,
+                            versionComment="Initial store of module size summary figure")
 annos <- c('analysisType'='visualization',
            'fileFormat'='tif',
            'consortium'='AMP-AD')
