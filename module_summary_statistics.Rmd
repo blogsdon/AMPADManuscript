@@ -72,7 +72,7 @@ dev.off()
 
 figObj<-synapseClient::File(module_size_loc,
                             parentId=figureSynId,
-                            versionComment="Initial store of module size summary figure")
+                            versionComment="Second store of module size summary figure")
 annos <- c('analysisType'='visualization',
            'fileFormat'='tif',
            'consortium'='AMP-AD')
@@ -110,7 +110,7 @@ dev.off()
 
 figObj<-synapseClient::File(module_number_loc,
                             parentId=figureSynId,
-                            versionComment="Initial store of module number summary figure")
+                            versionComment="Second store of module number summary figure")
 annos <- c('analysisType'='visualization',
            'fileFormat'='tif',
            'consortium'='AMP-AD')
