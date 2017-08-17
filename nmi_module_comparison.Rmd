@@ -160,3 +160,104 @@ Table of NMIs
 nmi_score_lf_list
 ```
 
+Make figures for potential use in the paper.
+```{r}
+make_figure_fxn <- function(file_location,
+                            brainRegion,
+                            versionCom,
+                            parentId,
+                            tableId){
+  
+                            
+file_loc <- file_location
+figureSynId <- parentId
+tiff(file=file_loc,
+    height=1687,
+    width=2250,
+    res=300,
+    pointsize = 30)
+p<-pheatmap::pheatmap(data.matrix(nmi_score[[brainRegion]]),
+                   fontsize = 15,
+                   main=brainRegion,
+                   silent=T)
+plot(p$gtable)
+dev.off()
+
+figObj<-synapseClient::File(file_loc,
+                            parentId=figureSynId,
+                            versionComment=versionCom)
+annos <- c('analysisType'='visualization',
+           'fileFormat'='tif',
+           'consortium'='AMP-AD')
+synapseClient::synSetAnnotations(figObj) <- as.list(annos)
+
+permLink <- githubr::getPermlink(repository='blogsdon/AMPADManuscript',
+                                 ref = 'branch',
+                                 refName = 'summary',
+                                 repositoryPath = 'nmi_module_comparison.Rmd')
+
+figObj<- synapseClient::synStore(figObj,
+                                 used=as.list(c(tableId)),
+                                 executed=as.list(permLink))
+synapseClient::onWeb(figObj)
+}
+
+file_locs <- c('figures/dlpfc_nmi.tiff',
+               'figures/cbe_nmi.tiff',
+               'figures/tcx_nmi.tiff',
+               'figures/fp_nmi.tiff',
+               'figures/ifg_nmi.tiff',
+               'figures/phg_nmi.tiff',
+               'figures/stg_nmi.tiff')
+
+brainRegions <- c('DLPFC',
+                  'CBE',
+                  'TCX',
+                  'FP',
+                  'IFG',
+                  'PHG',
+                  'STG')
+
+versionComms <- c('dlpfc nmi initial version',
+                  'cbe nmi initial version',
+                  'tcx nmi initial version',
+                  'fp nmi initial version',
+                  'ifg nmi initial version',
+                  'phg nmi initial version',
+                  'stg nmi initial version')
+
+
+storeId<-'syn10306508'
+modtableId <- 'syn10338156'
+
+res<-mapply(make_figure_fxn,
+       file_loc=file_locs,
+       brainRegion=brainRegions,
+       versionCom=versionComms,
+       MoreArgs = list(parentId=storeId,
+                       tableId=modtableId),
+       SIMPLIFY=F)
+
+```
+Push html notebook to Synapse.
+```{r}
+notebook_loc <- 'nmi_module_comparison.nb.html'
+notebookFolderId <- 'syn10306449'
+nbObj <- synapseClient::File(notebook_loc,
+                             parentId=notebookFolderId,
+                             versionComment="Store of notebook for nmi comparisons")
+annos <- c('fileFormat'='rmd',
+           'consortium'='AMP-AD')
+
+synapseClient::synSetAnnotations(nbObj) <- as.list(annos)
+permLink <- githubr::getPermlink(repository='blogsdon/AMPADManuscript',
+                                 ref = 'branch',
+                                 refName = 'summary',
+                                 repositoryPath = 'nmi_module_comparison.Rmd')
+
+nbObj<- synapseClient::synStore(nbObj,
+                                 used=as.list(c("syn10338156")),
+                                 executed=as.list(permLink))
+synapseClient::onWeb(nbObj)
+
+```
