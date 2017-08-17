@@ -9,7 +9,7 @@ First, we pull the entire individual module manifest from Synapse.
 
 ```{r}
 synapseClient::synapseLogin()
-individualModuleManifest <- synapseClient::synTableQuery("select * from syn10146524")@values
+individualModuleManifest <- synapseClient::synTableQuery("select * from syn10338156")@values
 head(individualModuleManifest)
 ```
 
@@ -72,7 +72,7 @@ dev.off()
 
 figObj<-synapseClient::File(module_size_loc,
                             parentId=figureSynId,
-                            versionComment="Second store of module size summary figure")
+                            versionComment="Module size summary figure with consensus")
 annos <- c('analysisType'='visualization',
            'fileFormat'='tif',
            'consortium'='AMP-AD')
@@ -110,7 +110,7 @@ dev.off()
 
 figObj<-synapseClient::File(module_number_loc,
                             parentId=figureSynId,
-                            versionComment="Second store of module number summary figure")
+                            versionComment="Module number summary figure with consensus")
 annos <- c('analysisType'='visualization',
            'fileFormat'='tif',
            'consortium'='AMP-AD')
