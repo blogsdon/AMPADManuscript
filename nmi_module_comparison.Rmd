@@ -1,8 +1,17 @@
 ---
-title: "pairwise module comparisons"
-output: html_notebook
+title: "normalized mutual information comparisons"
+output:
+  html_notebook: default
+  html_document: default
 ---
 
+First, we pull the entire individual module manifest from Synapse.
+
+```{r}
+synapseClient::synapseLogin()
+individualModuleManifest <- synapseClient::synTableQuery("select * from syn10338156")@values
+head(individualModuleManifest)
+```
 
 NMI distribution between modules for each brain region.
 
@@ -31,7 +40,7 @@ getClueMods <- function(x){
   x1 <- lapply(unique(x$method),listify,x)
   names(x1) <- unique(x$method)
   baz2 <- lapply(x1,fxn1)
-  
+  #fix issue with megena being a many to one mapping
   megenaTemp <- igraph::graph_from_data_frame(x1$megena)
   megenaAdj <- igraph::as_adjacency_matrix(megenaTemp)
   megenaAdj <- as.matrix(megenaAdj)
@@ -50,13 +59,32 @@ getClueMods <- function(x){
   megenaAdj <- megenaAdj[x1$metanetwork$GeneID,]
   foobar <- clue::as.cl_partition(as.matrix(megenaAdj))
   baz2$megena <- foobar
+  
+  #fix missing genes for consensus
+  notIn <- x1$metanetwork$GeneID[which(!(x1$metanetwork$GeneID%in%x1$consensus$GeneID))]
+  if(length(notIn)>0){
+    addendum <- dplyr::filter(x1$metanetwork,GeneID%in%notIn)
+    addendum$method <- rep('consensus',nrow(addendum))
+    addendum$Module <- rep('noMod',nrow(addendum))
+    addendum$ModuleName <- paste0(addendum$method,
+                                  addendum$Module)
+    addendum$ModuleNameFull <- paste0(addendum$ModuleName,
+                                      addendum$brainRegion)
+    x1$consensus <- rbind(x1$consensus,addendum)
+    y <- x1$consensus$Module
+    names(y) <- x1$consensus$GeneID
+    foobar2 <- clue::as.cl_partition(y)
+    baz2$consensus <- foobar2
+  }
+  
+  
   #names(baz2)[3] <- 'metanetwork'
   ensembleOfCluster <- clue::cl_ensemble(list = baz2)
   return(ensembleOfCluster)
 }
 
 
-nmi <- lapply(mods[1:3],getClueMods)
+nmi <- lapply(mods,getClueMods)
 nmi_score <- lapply(nmi,clue::cl_agreement,method='NMI')
 
 convertNmiToFlatTable <- function(x){
@@ -83,16 +111,6 @@ nmi_score_lf_list <- mapply(addBrainRegion,nmi_score_lf_list,names(nmi_score_lf_
 nmi_score_lf_list <- do.call(rbind,nmi_score_lf_list)
 ```
 
-```{r}
-library(pheatmap)
-p <- pheatmap(test, silent = TRUE)
-```
-
-```{r}
-plot(p$gtable)
-```
-
-
 Make plots.
 ```{r}
 p <- pheatmap::pheatmap(data.matrix(nmi_score$DLPFC),fontsize = 15,main='DLPFC',silent=T)
@@ -112,6 +130,31 @@ p<-pheatmap::pheatmap(data.matrix(nmi_score$TCX),fontsize = 15,main='TCX',silent
 ```{r}
 plot(p$gtable)
 ```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$FP),fontsize = 15,main='FP',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$IFG),fontsize = 15,main='IFG',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$PHG),fontsize = 15,main='PHG',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$STG),fontsize = 15,main='STG',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+
 Table of NMIs
 ```{r}
 nmi_score_lf_list

@@ -134,7 +134,7 @@ notebook_loc <- 'module_summary_statistics.nb.html'
 notebookFolderId <- 'syn10306449'
 nbObj <- synapseClient::File(notebook_loc,
                              parentId=notebookFolderId,
-                             versionComment="Initial store of notebook for module summaries")
+                             versionComment="Store of notebook for module summaries with consensus")
 annos <- c('fileFormat'='rmd',
            'consortium'='AMP-AD')
 
