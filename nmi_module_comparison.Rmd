@@ -1,0 +1,263 @@
+---
+title: "normalized mutual information comparisons"
+output:
+  html_notebook: default
+  html_document: default
+---
+
+First, we pull the entire individual module manifest from Synapse.
+
+```{r}
+synapseClient::synapseLogin()
+individualModuleManifest <- synapseClient::synTableQuery("select * from syn10338156")@values
+head(individualModuleManifest)
+```
+
+NMI distribution between modules for each brain region.
+
+```{r}
+mods <- lapply(unique(individualModuleManifest$brainRegion),
+               function(x,y){
+                  foo1 <- dplyr::filter(y,brainRegion==x)
+                  return(foo1)},
+               individualModuleManifest)
+names(mods) <- unique(individualModuleManifest$brainRegion)
+
+
+####compute NMI
+
+######NMI
+getClueMods <- function(x){
+  
+  fxn1 <- function(x){
+    y <- x$Module
+    names(y) <- x$GeneID
+    return(clue::as.cl_partition(y))
+  }
+  listify <- function(y,x){
+    return(dplyr::filter(x,method==y))
+  }
+  x1 <- lapply(unique(x$method),listify,x)
+  names(x1) <- unique(x$method)
+  baz2 <- lapply(x1,fxn1)
+  #fix issue with megena being a many to one mapping
+  megenaTemp <- igraph::graph_from_data_frame(x1$megena)
+  megenaAdj <- igraph::as_adjacency_matrix(megenaTemp)
+  megenaAdj <- as.matrix(megenaAdj)
+  moduleDefn <- unique(x1$megena$Module)
+  megenaAdj <- megenaAdj[-which(rownames(megenaAdj)%in%moduleDefn),moduleDefn]
+  notIn <- x1$metanetwork$GeneID[which(!(x1$metanetwork$GeneID%in%rownames(megenaAdj)))]
+  ind3 <- nrow(megenaAdj)
+  megenaAdj <- rbind(megenaAdj,matrix(0,length(notIn),ncol(megenaAdj)))
+  ind1 <- nrow(x1$metanetwork) - length(notIn)+1
+  ind2 <- nrow(x1$metanetwork)
+  
+  ind4 <- length(notIn)
+  rownames(megenaAdj)[ind1:ind2] <- notIn
+  megenaAdj <- cbind(megenaAdj,c(rep(0,ind3),rep(1,ind4)))
+  colnames(megenaAdj)[ncol(megenaAdj)] <- 'noMod'
+  megenaAdj <- megenaAdj[x1$metanetwork$GeneID,]
+  foobar <- clue::as.cl_partition(as.matrix(megenaAdj))
+  baz2$megena <- foobar
+  
+  #fix missing genes for consensus
+  notIn <- x1$metanetwork$GeneID[which(!(x1$metanetwork$GeneID%in%x1$consensus$GeneID))]
+  if(length(notIn)>0){
+    addendum <- dplyr::filter(x1$metanetwork,GeneID%in%notIn)
+    addendum$method <- rep('consensus',nrow(addendum))
+    addendum$Module <- rep('noMod',nrow(addendum))
+    addendum$ModuleName <- paste0(addendum$method,
+                                  addendum$Module)
+    addendum$ModuleNameFull <- paste0(addendum$ModuleName,
+                                      addendum$brainRegion)
+    x1$consensus <- rbind(x1$consensus,addendum)
+    y <- x1$consensus$Module
+    names(y) <- x1$consensus$GeneID
+    foobar2 <- clue::as.cl_partition(y)
+    baz2$consensus <- foobar2
+  }
+  
+  
+  #names(baz2)[3] <- 'metanetwork'
+  ensembleOfCluster <- clue::cl_ensemble(list = baz2)
+  return(ensembleOfCluster)
+}
+
+
+nmi <- lapply(mods,getClueMods)
+nmi_score <- lapply(nmi,clue::cl_agreement,method='NMI')
+
+convertNmiToFlatTable <- function(x){
+  x <- as.matrix(x)
+  #print(x)
+  foo1 <- which(lower.tri(x),T)
+  foo2 <- c(as.matrix(x))[which(lower.tri(x))]
+  foo3 <- foo1
+  foo3[,1] <- rownames(x)[foo1[,1]]
+  foo3[,2] <- colnames(x)[foo1[,2]]
+  df1 <- cbind(foo3,foo2)
+  colnames(df1) <- c('method1','method2','nmi')
+  df1 <- data.frame(df1,stringsAsFactors=F)
+  return(df1)
+}
+nmi_score_lf_list <- lapply(nmi_score,convertNmiToFlatTable)
+
+addBrainRegion <- function(x,y){
+  x <-cbind(x,rep(y,nrow(x)))
+  colnames(x)[ncol(x)] <- 'tissue'
+  return(x)
+}
+nmi_score_lf_list <- mapply(addBrainRegion,nmi_score_lf_list,names(nmi_score_lf_list),SIMPLIFY=F)
+nmi_score_lf_list <- do.call(rbind,nmi_score_lf_list)
+```
+
+Make plots.
+```{r}
+p <- pheatmap::pheatmap(data.matrix(nmi_score$DLPFC),fontsize = 15,main='DLPFC',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$CBE),fontsize = 15,main='CBE',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$TCX),fontsize = 15,main='TCX',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$FP),fontsize = 15,main='FP',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$IFG),fontsize = 15,main='IFG',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$PHG),fontsize = 15,main='PHG',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+```{r}
+p<-pheatmap::pheatmap(data.matrix(nmi_score$STG),fontsize = 15,main='STG',silent=T)
+```
+```{r}
+plot(p$gtable)
+```
+
+Table of NMIs
+```{r}
+nmi_score_lf_list
+```
+
+Make figures for potential use in the paper.
+```{r}
+make_figure_fxn <- function(file_location,
+                            brainRegion,
+                            versionCom,
+                            parentId,
+                            tableId){
+  
+                            
+file_loc <- file_location
+figureSynId <- parentId
+tiff(file=file_loc,
+    height=1687,
+    width=2250,
+    res=300,
+    pointsize = 30)
+p<-pheatmap::pheatmap(data.matrix(nmi_score[[brainRegion]]),
+                   fontsize = 15,
+                   main=brainRegion,
+                   silent=T)
+plot(p$gtable)
+dev.off()
+
+figObj<-synapseClient::File(file_loc,
+                            parentId=figureSynId,
+                            versionComment=versionCom)
+annos <- c('analysisType'='visualization',
+           'fileFormat'='tif',
+           'consortium'='AMP-AD')
+synapseClient::synSetAnnotations(figObj) <- as.list(annos)
+
+permLink <- githubr::getPermlink(repository='blogsdon/AMPADManuscript',
+                                 ref = 'branch',
+                                 refName = 'summary',
+                                 repositoryPath = 'nmi_module_comparison.Rmd')
+
+figObj<- synapseClient::synStore(figObj,
+                                 used=as.list(c(tableId)),
+                                 executed=as.list(permLink))
+synapseClient::onWeb(figObj)
+}
+
+file_locs <- c('figures/dlpfc_nmi.tiff',
+               'figures/cbe_nmi.tiff',
+               'figures/tcx_nmi.tiff',
+               'figures/fp_nmi.tiff',
+               'figures/ifg_nmi.tiff',
+               'figures/phg_nmi.tiff',
+               'figures/stg_nmi.tiff')
+
+brainRegions <- c('DLPFC',
+                  'CBE',
+                  'TCX',
+                  'FP',
+                  'IFG',
+                  'PHG',
+                  'STG')
+
+versionComms <- c('dlpfc nmi initial version',
+                  'cbe nmi initial version',
+                  'tcx nmi initial version',
+                  'fp nmi initial version',
+                  'ifg nmi initial version',
+                  'phg nmi initial version',
+                  'stg nmi initial version')
+
+
+storeId<-'syn10306508'
+modtableId <- 'syn10338156'
+
+res<-mapply(make_figure_fxn,
+       file_loc=file_locs,
+       brainRegion=brainRegions,
+       versionCom=versionComms,
+       MoreArgs = list(parentId=storeId,
+                       tableId=modtableId),
+       SIMPLIFY=F)
+
+```
+Push html notebook to Synapse.
+```{r}
+notebook_loc <- 'nmi_module_comparison.nb.html'
+notebookFolderId <- 'syn10306449'
+nbObj <- synapseClient::File(notebook_loc,
+                             parentId=notebookFolderId,
+                             versionComment="Store of notebook for nmi comparisons")
+annos <- c('fileFormat'='rmd',
+           'consortium'='AMP-AD')
+
+synapseClient::synSetAnnotations(nbObj) <- as.list(annos)
+permLink <- githubr::getPermlink(repository='blogsdon/AMPADManuscript',
+                                 ref = 'branch',
+                                 refName = 'summary',
+                                 repositoryPath = 'nmi_module_comparison.Rmd')
+
+nbObj<- synapseClient::synStore(nbObj,
+                                 used=as.list(c("syn10338156")),
+                                 executed=as.list(permLink))
+synapseClient::onWeb(nbObj)
+
+```
