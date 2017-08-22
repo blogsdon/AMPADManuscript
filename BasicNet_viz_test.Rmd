@@ -1,5 +1,5 @@
 ---
-title: "MAGMA enrichment visualization on network"
+title: "Basic networ visualization"
 output:
   html_notebook: default
   html_document: default
