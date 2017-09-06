@@ -95,7 +95,7 @@ PlotGraphGivenLabels <- function(Net,l,Labels, SizeList = c(),
 
 ### Creating graph layout
 ```{r}
-GenGraphViz <- function(x, pattern, Types,
+GenGraphViz <- function(Dat, pattern, Types,
                         sizeMin = 3, sizeMax = 10){
   
   #identifying subset of data to use
