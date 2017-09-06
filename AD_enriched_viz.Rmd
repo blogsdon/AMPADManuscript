@@ -1,0 +1,239 @@
+---
+title: "Basic networ visualization"
+output:
+  html_notebook: default
+  html_document: default
+---
+
+## Functions used for this visualization
+
+### Function to clean data
+
+```{r}
+
+removeSwappedDupKeyValueDf <- function(x){
+  foo <- igraph::graph_from_data_frame(x,directed=FALSE)
+  foo <- igraph::simplify(foo,edge.attr.comb = list("first"))
+  foo <- igraph::as_data_frame(foo,what='edges')
+  return(foo)
+}
+```
+
+
+### Creating weighter adjacency matrix 
+
+```{r}
+get.weighted.adjacency <- function(Net){
+  
+ Nam <- names(V(Net))
+ EL <- get.edgelist(Net)
+ W <- E(Net)$weight
+ A <- matrix(0, nrow = length(Nam), ncol = length(Nam))
+  
+ for (i in 1:length(EL[,1])){
+   
+   In1 <- grep(EL[i,1],Nam)
+   In2 <- grep(EL[i,2],Nam)
+   
+   A[In1,In2] = W[i]
+   A[In2,In1] = W[i]
+   
+ }
+  
+ return(A)
+  
+}
+
+```
+
+
+
+### Plotting a graph given labels for nodes (and node sizes)
+
+
+```{r}
+GenGraphViz <- function(x, pattern, Types,
+                        sizeMin = 3, sizeMax = 10){
+  
+  #identifying subset of data to use
+  print('Obtaining sub-graph based on brain region')
+  In1 <- grep(pattern,Dat$from)
+  In2 <- grep(pattern,Dat$to)
+  In_int <- intersect(In1,In2)
+  Dat <- Dat[In_int,]
+  
+  #annotating nodes by algorithm type
+  print('Annotating nodes by algorithm type')
+  ModNames <- c()
+  ModType <- c()
+  TypeName <- c()
+  
+  l <- length(Types)
+  
+  for (i in 1:l){
+    temp <- union(grep(Types[i],Dat$from, value= TRUE),
+                  grep(Types[i],Dat$to, value= TRUE))
+    ModNames <- c(ModNames,temp)
+    ModType <- c(ModType,rep(i,length(temp)))
+    cat('No. of modules in',Types[i],length(temp),'\n')
+    TypeName <- c(TypeName, rep(Types[i],length(temp)))
+  }
+  
+  #creating visualization 
+  print('Creating visualization')
+  df <- data.frame(Name = ModNames, ModType = ModType, 
+                   TypeName = TypeName)
+  library('igraph')
+  df2 <- data.frame(from = Dat$from, 
+                    to = Dat$to,
+                    weight =  (1/(1e-50 + c(Dat$fisherOR)^1)))
+  net <- graph.data.frame(df2, vertices=df, directed=F) 
+  
+  #coloring nodes on the basis of module type 
+  cmap <- rainbow(l, alpha=1) 
+  V(net)$color <- cmap[V(net)$ModType]
+  deg <- 1/(1e-50 + strength(net))
+  V(net)$size <- sizeMin + deg/max(deg)*sizeMax
+  #l <- layout_with_fr(net, niter = 5000, grid = 'nogrid')
+  l <- layout_with_graphopt(net, niter= 500, charge = 0.01, mass = .0001,
+                             spring.constant = 10)
+  
+  E(net)$width <- 1*(E(net)$weight - min(E(net)$weight))/max(E(net)$weight)
+  #E(net)$width[E(net)$width <= median(E(net)$weight)] <- 0
+  m <- median(E(net)$weight)
+  net <- delete_edges(net, E(net)[weight<m])
+
+  #l <- layout_with_kk(net)
+  A <- get.weighted.adjacency(net)
+  #library(tsne)
+  #l <- tsne(A)
+  plot(net, vertex.label = NA, edge.width = E(net)$width,  
+       layout=l)
+  legend(x=-1.5, y=-1.1,Types,pch=21,col="#777777", pt.bg=cmap,
+         pt.cex=2, cex=.8, bty="n", ncol=1)
+  
+  #returning igraph object and layout
+  RetDat <- list()
+  RetDat$net <- net 
+  RetDat$l <- l 
+  return(RetDat)
+  
+  
+}
+```
+
+### Getting list of all genes in a set of modules 
+
+```{r}
+
+GetGenesModules <- function(brainRegion, ModuleNames){
+  
+  ConsensusGeneMods <- synapseClient::synTableQuery(paste0("SELECT * FROM syn10337531 
+                                                           where brainRegion = 
+                                                           '",brainRegion,"'"))@values
+  
+  OtherGeneMods <- synapseClient::synTableQuery(paste0("SELECT * FROM syn10309369 
+                                                         where brainRegion = 
+                                                         '",brainRegion,"'"))@values
+  
+  In <- which(ConsensusGeneMods$ModuleNameFull %in% ModuleNames)
+  ConsensusGeneMods <- ConsensusGeneMods[In,]
+  
+  In <- which(ConsensusGeneMods$ModuleNameFull %in% ModuleNames)
+  OtherGeneMods <- OtherGeneMods[In,]  
+  
+  AllGeneMods <- rbind(ConsensusGeneMods, OtherGeneMods)
+
+  
+  return(AllGeneMods)
+}
+
+
+```
+
+
+
+
+#Main program
+
+### Log into Synapse
+
+```{r}
+#synapseClient::synapseLogin()
+```
+
+
+
+### Downloading network modules and pairwise scores
+
+```{r}
+Dat <- synapseClient::synTableQuery("SELECT * FROM syn10339153 where ModuleNameFull like '%TCX' and category like '%TCX'")@values
+Dat <- removeSwappedDupKeyValueDf(Dat)
+Dat <- dplyr::mutate(Dat,adj=p.adjust(fisherPval,method='fdr'))
+Dat <- dplyr::filter(Dat,adj<=0.05)
+#Drop rows with infinite fisherOR
+In <- which(Dat$fisherOR==Inf)
+Dat <- Dat[-In, ]
+#m <- median(Dat$fisherOR) #keeping only top half of significant interactions
+#In <- which(Dat$fisherOR<m)
+#Dat <- Dat[-In, ]
+```
+
+### Keeping only modules that are significant for AD 
+
+```{r}
+
+Dat2 <- synapseClient::synTableQuery("SELECT * FROM syn10516371 where ModuleBrainRegion = 'TCX'")@values
+
+In <- intersect(which(Dat$from %in% Dat2$ModuleNameFull), 
+                which(Dat$to %in% Dat2$ModuleNameFull))
+Dat <- Dat[In,]
+
+```
+
+
+
+### Generating visualization colored by network type
+
+```{r}
+pattern <- "TCX"
+Types <- c('consensus','megena','metanetwork','rWGCNA','speakEasy','wina')
+RetGraph <- GenGraphViz(Dat,pattern, Types)
+Net <- RetGraph$net 
+lt <- RetGraph$l 
+```
+###Printing the number of enriched modules 
+
+```{r}
+
+EnrichedModuleNames <- names(V(Net))
+print(EnrichedModuleNames)
+
+```
+
+###Get the list of all genes in the enriched modules 
+
+```{r}
+
+AllGeneNames <- GetGenesModules(pattern, EnrichedModuleNames)
+head(AllGeneNames)
+
+```
+
+### Generate heatmap of correlation 
+
+```{r}
+Temp <- synGet('syn10624996')
+ExpDat <- readRDS(Temp@filePath)
+ExpDat <- ExpDat$mayoTCX[unique(AllGeneNames$GeneID)]
+SubSampleDepth <- 500
+RandIn <- sample.int(length(names(ExpDat)), SubSampleDepth)
+ExpDat <- ExpDat[,RandIn]
+CorMat <- cor(ExpDat)
+
+pheatmap::pheatmap(CorMat)
+
+
+```
+
+
