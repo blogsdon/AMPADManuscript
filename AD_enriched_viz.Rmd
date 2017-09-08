@@ -92,21 +92,21 @@ GenGraphViz <- function(Dat, pattern, Types,
   #coloring nodes on the basis of module type 
   cmap <- rainbow(l, alpha=1) 
   V(net)$color <- cmap[V(net)$ModType]
-  deg <- 1/(1e-50 + strength(net))
+  deg <- 1/(1e-50 + strength(net))  #strength is the weighted degree 
   V(net)$size <- sizeMin + deg/max(deg)*sizeMax
-  #l <- layout_with_fr(net, niter = 5000, grid = 'nogrid')
+  
+  
+  #Creating spring loaded layout
   l <- layout_with_graphopt(net, niter= 500, charge = 0.01, mass = .0001,
                              spring.constant = 10)
   
   E(net)$width <- 1*(E(net)$weight - min(E(net)$weight))/max(E(net)$weight)
-  #E(net)$width[E(net)$width <= median(E(net)$weight)] <- 0
+  
+  #Deleting edges with low strength for better visualization
   m <- median(E(net)$weight)
   net <- delete_edges(net, E(net)[weight<m])
-
-  #l <- layout_with_kk(net)
-  A <- get.weighted.adjacency(net)
-  #library(tsne)
-  #l <- tsne(A)
+  
+  #Plotting 
   plot(net, vertex.label = NA, edge.width = E(net)$width,  
        layout=l)
   legend(x=-1.5, y=-1.1,Types,pch=21,col="#777777", pt.bg=cmap,
@@ -174,9 +174,6 @@ Dat <- dplyr::filter(Dat,adj<=0.05)
 #Drop rows with infinite fisherOR
 In <- which(Dat$fisherOR==Inf)
 Dat <- Dat[-In, ]
-#m <- median(Dat$fisherOR) #keeping only top half of significant interactions
-#In <- which(Dat$fisherOR<m)
-#Dat <- Dat[-In, ]
 ```
 
 ### Keeping only modules that are significant for AD 
